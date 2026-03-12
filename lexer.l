@@ -13,13 +13,13 @@ LETTER      [a-zA-Z]
 ALPHANUM    [a-zA-Z0-9_]
 SIGN        [+-]
 
-INT_LIT     {DIGIT}+
-FLOAT_LIT   {DIGIT}+"."{DIGIT}+
-DOUBLE_LIT  {DIGIT}+"."{DIGIT}+[dD]
-STRING_LIT  \"([^\"\n\\]|\\.)*\"
-CHAR_LIT    \'([^\'\n\\]|\\.)\'
-BOOL_LIT    "true"|"false"
-NULL_LIT    "null"
+INT_VAL     {DIGIT}+
+FLOAT_VAL   {DIGIT}+"."{DIGIT}+
+DOUBLE_VAL  {DIGIT}+"."{DIGIT}+[dD]
+STRING_VAL  \"([^\"\n\\]|\\.)*\"
+CHAR_VAL    \'([^\'\n\\]|\\.)\'
+BOOL_VAL    "true"|"false"
+NULL_VAL    "null"
 
 ID          {LETTER}{ALPHANUM}*
 
@@ -27,7 +27,7 @@ NEWLINE     \r?\n
 WHITESPACE  [ \t\r]+
 
 LINE_CMT    "//"[^\n]*
-BLOCK_CMT   "/*"([^*]|\*+[^*/])*\*+"/"
+BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 
 %%
 {WHITESPACE}    { }
@@ -35,6 +35,8 @@ BLOCK_CMT   "/*"([^*]|\*+[^*/])*\*+"/"
 {LINE_CMT}      { }
 {BLOCK_CMT}     { }
 
+"let"           { return LET;      }
+"const"         { return CONST;    }
 "if"            { return IF;       }
 "else"          { return ELSE;     }
 "elif"          { return ELIF;     }
@@ -53,19 +55,17 @@ BLOCK_CMT   "/*"([^*]|\*+[^*/])*\*+"/"
 "finally"       { return FINALLY;  }
 "throw"         { return THROW;    }
 
-"func"          { return FUNC;     }
-
-"print"         { return DISPLAY;  }
+"display"       { return DISPLAY;  }
 "input"         { return INPUT;    }
 "read"          { return READ;     }
 
-{BOOL_LIT}      { return BOOL_LIT;    }
-{NULL_LIT}      { return NULL_LIT;    }
-{DOUBLE_LIT}    { return DOUBLE_LIT;  }
-{FLOAT_LIT}     { return FLOAT_LIT;   }
-{INT_LIT}       { return INT_LIT;     }
-{STRING_LIT}    { return STRING_LIT;  }
-{CHAR_LIT}      { return CHAR_LIT;    }
+{BOOL_VAL}      { return BOOL_LIT;    }
+{NULL_VAL}      { return NULL_LIT;    }
+{DOUBLE_VAL}    { return DOUBLE_LIT;  }
+{FLOAT_VAL}     { return FLOAT_LIT;   }
+{INT_VAL}       { return INT_LIT;     }
+{STRING_VAL}    { return STRING_LIT;  }
+{CHAR_VAL}      { return CHAR_LIT;    }
 
 "+"             { return ADD;    }
 "-"             { return SUB;    }
@@ -112,17 +112,3 @@ BLOCK_CMT   "/*"([^*]|\*+[^*/])*\*+"/"
 %%
 
 int yywrap(void) { return 1; }
-
-int main(int argc, char* argv[]) {
-    if (argc > 1) {
-        FILE* f = fopen(argv[1], "r");
-        if (!f) { printf("Error: Cannot open file '%s'\n", argv[1]); return 1; }
-        yyin = f;
-    }
-    
-    int token;
-    while ((token = yylex()) != 0) {  
-    }
-    
-    return 0;
-}
