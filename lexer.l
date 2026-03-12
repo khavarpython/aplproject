@@ -26,7 +26,7 @@ ID          {LETTER}{ALPHANUM}*
 NEWLINE     \r?\n
 WHITESPACE  [ \t\r]+
 
-LINE_CMT    "//"[^\n]*
+LINE_CMT    "--"[^\n]*
 BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 
 %%
@@ -40,15 +40,10 @@ BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 "if"            { return IF;       }
 "else"          { return ELSE;     }
 "elif"          { return ELIF;     }
-"while"         { return WHILE;    }
 "for"           { return FOR;      }
-"do"            { return DO;       }
 "break"         { return BREAK;    }
 "continue"      { return CONTINUE; }
 "return"        { return RETURN;   }
-"switch"        { return SWITCH;   }
-"case"          { return CASE;     }
-"default"       { return DEFAULT;  }
 
 "try"           { return TRY;      }
 "catch"         { return CATCH;    }
@@ -69,26 +64,19 @@ BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 
 "+"             { return ADD;    }
 "-"             { return SUB;    }
+"**"            { return POW;    }
 "*"             { return MUL;    }
 "/"             { return DIV;    }
 "%"             { return MOD;    }
-"**"            { return POW;    }
-
-"="             { return ASSIGN;     }
-"+="            { return ASSIGN_ADD; }
-"-="            { return ASSIGN_SUB; }
-"*="            { return ASSIGN_MUL; }
-"/="            { return ASSIGN_DIV; }
-
-"++"            { return INCREM; }
-"--"            { return DECREM; }
 
 "=="            { return EQUAL;  }
+"="             { return ASSIGN;     }
+
 "!="            { return NEQUAL; }
-"<"             { return LESS_THAN;  }
 "<="            { return LESS_THAN_E; }
-">"             { return GREATER_THAN;  }
 ">="            { return GREATER_THAN_E; }
+"<"             { return LESS_THAN;  }
+">"             { return GREATER_THAN;  }
 
 "&&"            { return AND; }
 "||"            { return OR;  }
