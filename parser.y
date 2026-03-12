@@ -37,10 +37,10 @@ int main()
 program:
 	stmts
 	;
-
 stmts:
-	stmts stmt
-	;	
+    /* empty */
+    | stmts stmt
+    ;
 
 stmt:
 	assign_stmt 
@@ -53,7 +53,7 @@ assign_stmt:
 	;
 
 print_stmt:
-	DISPLAY (expr)
+	DISPLAY expr
 	;
 
 lvalue:
@@ -116,3 +116,4 @@ value:
 
 
 %%
+
