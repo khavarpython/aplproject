@@ -2,11 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lex_tokens.h"
+#include "parser.tab.h"
 %}
 
 %option yylineno
 %option nodefault
+%option noyywrap
 
 DIGIT       [0-9]
 LETTER      [a-zA-Z]
@@ -98,5 +99,3 @@ BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 .               { printf("[LEXICAL ERROR] Line %d: Unknown character '%s'\n", yylineno, yytext); }
 
 %%
-
-int yywrap(void) { return 1; }
