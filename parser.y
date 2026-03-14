@@ -21,7 +21,7 @@ int main() { yyparse();	return 0;	}
     double dval;
 }
 
-%token LET CONST TRY CATCH FINALLY THROW DISPLAY INPUT READ
+%token LET CONST TRY CATCH DISPLAY INPUT READ
 %token NULL_LIT CHAR_LIT
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
@@ -42,8 +42,12 @@ stmt:
 	assign_stmt 
 	|
 	print_stmt
+	|
+	try_stmt
+	|
+	input_stmt
 	;
-
+	
 assign_stmt:
 	LET IDENTIFIER ASSIGN expr
 	;
@@ -51,6 +55,14 @@ assign_stmt:
 print_stmt:
     DISPLAY expr
     | DISPLAY expr expr
+    ;
+
+try_stmt:
+    TRY stmts CATCH stmts
+    ;
+
+input_stmt:
+    INPUT expr READ IDENTIFIER
     ;
 
 expr:
