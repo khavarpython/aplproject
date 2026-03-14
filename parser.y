@@ -49,52 +49,23 @@ stmt:
 	;
 
 assign_stmt:
-	LET lvalue ASSIGN rvalue
+	LET IDENTIFIER ASSIGN expr
 	;
 
 print_stmt:
-	DISPLAY expr
-	;
-
-lvalue:
-	IDENTIFIER
-	;
-
-rvalue:
-	value
-	|
-	expr
-	;
+    DISPLAY expr
+    | DISPLAY expr expr
+    ;
 
 expr:
-	value
-	|
-	value expr
-	|
-	value ADD value
-	|
-	value ADD expr
-	|
-	value SUB value
-	|
-	value SUB expr
-	|
-	value MUL value
-	|
-	value MUL expr
-	|
-	value DIV value
-	|
-	value DIV expr
-	|
-	value MOD value
-	|
-	value MOD expr
-	|
-	value POW value
-	|
-	value POW expr
-	;
+    value
+    | value ADD expr
+    | value SUB expr
+    | value MUL expr
+    | value DIV expr
+    | value MOD expr
+    | value POW expr
+    ;
 
 value:
 	BOOL_LIT
