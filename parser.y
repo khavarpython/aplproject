@@ -47,9 +47,11 @@ stmt:
 	|
 	input_stmt
 	;
-	
+
 assign_stmt:
 	LET IDENTIFIER ASSIGN expr
+	|
+	CONST IDENTIFIER ASSIGN expr
 	;
 
 print_stmt:
