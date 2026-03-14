@@ -38,8 +38,6 @@ LINE_CMT    "--"[^\n]*
 
 "try"           { return TRY;      }
 "catch"         { return CATCH;    }
-"finally"       { return FINALLY;  }
-"throw"         { return THROW;    }
 
 "display"       { return DISPLAY;  }
 "input"         { return INPUT;    }
