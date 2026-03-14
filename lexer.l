@@ -12,7 +12,6 @@
 DIGIT       [0-9]
 LETTER      [a-zA-Z]
 ALPHANUM    [a-zA-Z0-9_]
-SIGN        [+-]
 
 INT_VAL     {DIGIT}+
 FLOAT_VAL   {DIGIT}+"."{DIGIT}+
@@ -28,23 +27,14 @@ NEWLINE     \r?\n
 WHITESPACE  [ \t\r]+
 
 LINE_CMT    "--"[^\n]*
-BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 
 %%
 {WHITESPACE}    { }
 {NEWLINE}       { }
 {LINE_CMT}      { }
-{BLOCK_CMT}     { }
 
 "let"           { return LET;      }
 "const"         { return CONST;    }
-"if"            { return IF;       }
-"else"          { return ELSE;     }
-"elif"          { return ELIF;     }
-"for"           { return FOR;      }
-"break"         { return BREAK;    }
-"continue"      { return CONTINUE; }
-"return"        { return RETURN;   }
 
 "try"           { return TRY;      }
 "catch"         { return CATCH;    }
@@ -69,33 +59,12 @@ BLOCK_CMT   "/*"([^*]|\*[^/])*"*/"
 "*"             { return MUL;    }
 "/"             { return DIV;    }
 "%"             { return MOD;    }
+"="             { return ASSIGN; }
 
-"=="            { return EQUAL;  }
-"="             { return ASSIGN;     }
-
-"!="            { return NEQUAL; }
-"<="            { return LESS_THAN_E; }
-">="            { return GREATER_THAN_E; }
-"<"             { return LESS_THAN;  }
-">"             { return GREATER_THAN;  }
-
-"&&"            { return AND; }
-"||"            { return OR;  }
-"!"             { return NOT; }
-
-"("             { return LPAREN;    }
-")"             { return RPAREN;    }
-"{"             { return LBRACE;    }
-"}"             { return RBRACE;    }
-"["             { return LBRACKET;  }
-"]"             { return RBRACKET;  }
-";"             { return SEMICOLON; }
-":"             { return COLON;     }
-","             { return COMMA;     }
-"."             { return DOT;       }
+"("             { return LPAREN; }
+")"             { return RPAREN; }
 
 {ID}            { yylval.sval = strdup(yytext); return IDENTIFIER;  }
 
 .               { printf("[LEXICAL ERROR] Line %d: Unknown character '%s'\n", yylineno, yytext); }
-
 %%

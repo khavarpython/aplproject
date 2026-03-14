@@ -8,29 +8,12 @@ int yywrap();
 int yyparse();
 int yylex();
 
-void yyerror(const char *str) 
-{ 
-	fprintf(stderr,"error: %s\n",str); 
-} 
+void yyerror(const char *str) { fprintf(stderr,"error: %s\n",str); } 
 
-int yywrap() 
-{ 
-	return 1; 
-} 
+int yywrap() { return 1; } 
 
-int main() 
-{ 
-	yyparse();
-	return 0;
-}
+int main() { yyparse();	return 0;	}	
 %}
-
-%token LET CONST IF ELSE ELIF WHILE FOR DO BREAK CONTINUE RETURN
-%token TRY CATCH FINALLY THROW DISPLAY INPUT READ
-%token NULL_LIT CHAR_LIT
-%token ADD SUB MUL DIV MOD POW ASSIGN
-%token EQUAL NEQUAL LESS_THAN LESS_THAN_E GREATER_THAN GREATER_THAN_E
-%token AND OR NOT LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET SEMICOLON COLON COMMA DOT
 
 %union {
     char *sval;
@@ -38,10 +21,13 @@ int main()
     double dval;
 }
 
-%token <sval> IDENTIFIER STRING_LIT
-%token <ival> INT_LIT BOOL_LIT
-%token <dval> FLOAT_LIT DOUBLE_LIT
+%token LET CONST TRY CATCH FINALLY THROW DISPLAY INPUT READ
+%token NULL_LIT CHAR_LIT
+%token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
+%token <sval> IDENTIFIER STRING_LIT
+%token <ival> INT_LIT
+%token <dval> FLOAT_LIT DOUBLE_LIT
 %%
 
 program:
@@ -94,7 +80,5 @@ value:
 	|
 	IDENTIFIER
 	;
-
-
 %%
 
