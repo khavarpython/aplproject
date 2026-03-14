@@ -47,10 +47,10 @@ LINE_CMT    "--"[^\n]*
 
 {BOOL_VAL}      { return BOOL_LIT;    }
 {NULL_VAL}      { return NULL_LIT;    }
-{DOUBLE_VAL}    { return DOUBLE_LIT;  }
-{FLOAT_VAL}     { return FLOAT_LIT;   }
-{INT_VAL}       { return INT_LIT;     }
-{STRING_VAL}    { return STRING_LIT;  }
+{DOUBLE_VAL}    { yylval.dval = atof(yytext); return DOUBLE_LIT; }
+{FLOAT_VAL}     { yylval.dval = atof(yytext); return FLOAT_LIT;  }
+{INT_VAL}       { yylval.ival = atoi(yytext); return INT_LIT;    }
+{STRING_VAL}    { yylval.sval = strdup(yytext); return STRING_LIT; }
 {CHAR_VAL}      { return CHAR_LIT;    }
 
 "+"             { return ADD;    }
