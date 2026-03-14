@@ -1,7 +1,9 @@
-# bison -d parser.y
+# Instructions for running
 
-# flex lexer.l
+## bison -d parser.y
 
-# gcc parser.tab.c lex.yy.c -o myparser
+## flex lexer.l
 
-# ./myparser. Type commands
+## gcc parser.tab.c lex.yy.c -o myparser
+
+## ./myparser. Then type commands
