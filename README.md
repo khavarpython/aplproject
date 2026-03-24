@@ -1,9 +1,21 @@
-# Instructions for running
+# Instructions for Running
 
-## bison -d parser.y
+1. Generate parser:
+```bash
+   bison -d parser.y
+```
 
-## flex lexer.l
+2. Generate lexer:
+```bash
+   lex lexer.l
+```
 
-## gcc parser.tab.c lex.yy.c -o myparser
+3. Compile:
+```bash
+   gcc parser.tab.c lex.yy.c -o myparser -lm
+```
 
-## ./myparser. Then type commands
+4. Run with input file:
+```bash
+   ./myparser < test.txt
+```
