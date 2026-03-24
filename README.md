@@ -1,4 +1,4 @@
-# MyLanguageName Compiler
+# Apl Compiler
 
 ## Requirements
 - GCC
