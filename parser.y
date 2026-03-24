@@ -1,6 +1,8 @@
 %{ 
 #include <stdio.h> 
-#include <string.h> 
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 //function declarations
 void yyerror(const char *str);
@@ -22,12 +24,22 @@ int main() { yyparse();	return 0;	}
 }
 
 %token LET CONST TRY CATCH DISPLAY INPUT READ
-%token NULL_LIT CHAR_LIT
+%token NULL_LIT CHAR_LIT BOOL_LIT
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
 %token <sval> IDENTIFIER STRING_LIT
 %token <ival> INT_LIT
 %token <dval> FLOAT_LIT DOUBLE_LIT
+
+//PEMDAS
+%left ADD SUB //lowest precedence (addition and subtraction)
+%left MUL DIV MOD
+%right POW
+%left LPAREN RPAREN
+
+%type <dval> expr value //expression types return double values
+
+
 %%
 
 program:
@@ -69,12 +81,14 @@ input_stmt:
 
 expr:
     value
-    | value ADD expr
-    | value SUB expr
-    | value MUL expr
-    | value DIV expr
-    | value MOD expr
-    | value POW expr
+    | expr ADD expr
+    | expr SUB expr
+    | expr MUL expr
+    | expr DIV expr
+    | expr MOD expr
+    | expr POW expr
+    | LPAREN expr RPAREN
+    | SUB expr %prec MUL //to handle negative numbers
     ;
 
 value:
