@@ -44,11 +44,6 @@ Value get_var(char *name) {
     return symtab[idx].val;
 }
 
-// Error Handling Variables
-int div_error = 0;
-jmp_buf catch_point;
-char num_buf[50];
-
 // Helper Functions
 void display_value(char *s) {
     if (s[0] == '"')
@@ -60,17 +55,15 @@ void display_value(char *s) {
 double to_num(Value v) {
     if (v.type == TYPE_INT)    return v.ival;
     if (v.type == TYPE_DOUBLE) return v.dval;
-    if (v.type == TYPE_STRING) {
-        printf("[TYPE ERROR] Cannot use string in numeric expression\n");
-        div_error = 1; 
-        longjmp(catch_point, 1);
-    }
-
     printf("[TYPE ERROR] Expected number\n");
-    div_error = 1; 
-    longjmp(catch_point, 1);
     return nan("");
 }
+
+// Error Handling Variables
+int div_error = 0;
+jmp_buf catch_point;
+char num_buf[50];
+
 
 int yylex();
 void yyerror(const char *s) { fprintf(stderr, "error: %s\n", s); }
@@ -87,11 +80,11 @@ int yywrap() { return 1; }
 
 // TOKENS  
 %token LET TRY CATCH DISPLAY INPUT READ
-%token NULL_LIT CHAR_LIT
+%token NULL_LIT CHAR_LIT BOOL_LIT
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
 %token <sval> IDENTIFIER STRING_LIT
-%token <ival> INT_LIT BOOL_LIT
+%token <ival> INT_LIT
 %token <dval> FLOAT_LIT DOUBLE_LIT
 
 // TYPES 
@@ -132,18 +125,10 @@ assign_stmt:
     LET IDENTIFIER ASSIGN expr {
         if (!div_error) {
             set_var($2, $4->val);
-
-            if ($4->val.type == TYPE_INT) {
-                printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
-            }
-            else if ($4->val.type == TYPE_STRING)  {
-                printf("[ASSIGN] %s = %s\n", $2, $4->val.sval); 
-            }
-            else {
-                printf("[ASSIGN] %s = %g\n", $2, $4->val.dval);
-                }
+            if ($4->val.type == TYPE_INT) printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
+            else if ($4->val.type == TYPE_STRING)  printf("[ASSIGN] %s = %s\n", $2, $4->val.sval); 
+            else printf("[ASSIGN] %s = %g\n", $2, $4->val.dval);
         }
-
         ASTNode *id = create_leaf_id($2);
         $$ = create_node("LET", id, $4);
         free($2);
@@ -169,25 +154,20 @@ display_item:
         free($1);
     }
     | expr {
-        if ($1->val.type == TYPE_INT) {
-            printf("%d", $1->val.ival);
-        }
-        else if ($1->val.type == TYPE_STRING)  {
-            display_value($1->val.sval);
-        }
-        else {
-            printf("%g", $1->val.dval);
-        }
-
+        if ($1->val.type == TYPE_INT) printf("%d", $1->val.ival);
+        else if ($1->val.type == TYPE_STRING)  display_value($1->val.sval);
+        else printf("%g", $1->val.dval);
         $$ = $1;
     }
 ;
 
 try_stmt:
-    TRY stmts CATCH stmts {
-        $$ = create_node("TRY", $2, $4);
+    TRY {
+        div_error = 0;
+        setjmp(catch_point);
+    } stmts CATCH stmts {
+        $$ = create_node("TRY", $3, $5);
     }
-;
 ;
 
 input_stmt:
@@ -195,11 +175,8 @@ input_stmt:
         double val;
         printf("Enter value for %s: ", $4);
         scanf("%lf", &val);
-
-        Value v; v.type = TYPE_DOUBLE; 
-        v.dval = val;
+        Value v; v.type = TYPE_DOUBLE; v.dval = val;
         set_var($4, v);
-
         ASTNode *id = create_leaf_id($4);
         $$ = create_node("INPUT", $2, id);
         free($4);
@@ -213,43 +190,32 @@ expr:
     | expr MUL expr         { $$ = create_node("MUL",$1,$3); $$->val.type=TYPE_DOUBLE; $$->val.dval=to_num($1->val)*to_num($3->val); }
     | expr DIV expr         {
         $$ = create_node("DIV",$1,$3);
-
         if (to_num($3->val) == 0) {
             div_error = 1;
             longjmp(catch_point, 1);
-            $$->val.type=TYPE_DOUBLE; 
-            $$->val.dval=0;
-        } 
-        else {
-            $$->val.type=TYPE_DOUBLE; 
-            $$->val.dval=to_num($1->val)/to_num($3->val);
+            $$->val.type=TYPE_DOUBLE; $$->val.dval=0;
+        } else {
+            $$->val.type=TYPE_DOUBLE; $$->val.dval=to_num($1->val)/to_num($3->val);
         }
     }
     | expr MOD expr         {
-        if ((int)to_num($3->val) == 0) {        
-            printf("[RUNTIME ERROR] Modulo by zero\n");
-            div_error = 1; 
-            longjmp(catch_point, 1);
-        }
         $$ = create_node("MOD",$1,$3);
-        $$->val.type=TYPE_INT; 
-        $$->val.ival=(int)to_num($1->val)%(int)to_num($3->val);
+        $$->val.type=TYPE_INT; $$->val.ival=(int)to_num($1->val)%(int)to_num($3->val);
     }
     | expr POW expr         {
         $$ = create_node("POW",$1,$3);
-        $$->val.type=TYPE_DOUBLE; 
-        $$->val.dval=pow(to_num($1->val),to_num($3->val));
+        $$->val.type=TYPE_DOUBLE; $$->val.dval=pow(to_num($1->val),to_num($3->val));
     }
     | LPAREN expr RPAREN    { $$ = $2; }
     | SUB expr %prec MUL    { $$ = create_node("NEG",$2,NULL); $$->val.type=TYPE_DOUBLE; $$->val.dval=-to_num($2->val); }
 ;
 
 value:
-    BOOL_LIT      { $$ = create_leaf_int($1); }
+    BOOL_LIT      { $$ = create_leaf_num(0); }
     | NULL_LIT    { $$ = create_leaf_num(0); }
-    | INT_LIT     { $$ = create_leaf_int($1); }
-    | FLOAT_LIT   { $$ = create_leaf_num($1); }
-    | DOUBLE_LIT  { $$ = create_leaf_num($1); }
+    | INT_LIT    { $$ = create_leaf_int($1); }
+    | FLOAT_LIT  { $$ = create_leaf_num($1); }
+    | DOUBLE_LIT { $$ = create_leaf_num($1); }
     | STRING_LIT  { $$ = create_leaf_str($1); free($1); }
     | IDENTIFIER {
         Value v = get_var($1);
