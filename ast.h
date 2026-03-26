@@ -1,20 +1,39 @@
 #ifndef AST_H
 #define AST_H
 
+typedef enum
+{
+    TYPE_INT,
+    TYPE_DOUBLE,
+    TYPE_STRING,
+    TYPE_BOOL,
+    TYPE_NULL
+} VType;
+
+typedef struct
+{
+    VType type;
+    union
+    {
+        int ival;
+        double dval;
+        char sval[256];
+    };
+} Value;
+
 typedef struct ASTNode
 {
     char type[20];
-    double value;
     char name[50];
-    char sval[256];
-    struct ASTNode *left;
-    struct ASTNode *right;
+    Value val;
+    struct ASTNode *left, *right;
 } ASTNode;
 
 ASTNode *create_node(char *type, ASTNode *left, ASTNode *right);
-ASTNode *create_leaf_num(double value);
-ASTNode *create_leaf_id(char *name);
+ASTNode *create_leaf_num(double d);
+ASTNode *create_leaf_int(int i);
 ASTNode *create_leaf_str(char *s);
+ASTNode *create_leaf_id(char *name);
 void print_ast(ASTNode *root, int level);
 
 #endif
