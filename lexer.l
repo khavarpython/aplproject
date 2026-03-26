@@ -19,7 +19,6 @@ FLOAT_VAL   {DIGIT}+"."{DIGIT}+
 DOUBLE_VAL  {DIGIT}+"."{DIGIT}+[dD]
 STRING_VAL  \"([^\"\n\\]|\\.)*\"
 CHAR_VAL    \'([^\'\n\\]|\\.)\'
-BOOL_VAL    "true"|"false"
 NULL_VAL    "null"
 
 ID          {LETTER}{ALPHANUM}*
@@ -43,7 +42,8 @@ LINE_CMT    "--"[^\n]*
 "input"         { return INPUT;    }
 "read"          { return READ;     }
 
-{BOOL_VAL}      { yylval.ival = strcmp(yytext, "true") == 0 ? 1 : 0; return BOOL_LIT; }
+"true"          { yylval.ival = 1; return BOOL_LIT; }
+"false"         { yylval.ival = 0; return BOOL_LIT; }
 {NULL_VAL}      { return NULL_LIT;    }
 {DOUBLE_VAL}    { yylval.dval = atof(yytext); return DOUBLE_LIT; }
 {FLOAT_VAL}     { yylval.dval = atof(yytext); return FLOAT_LIT;  }
