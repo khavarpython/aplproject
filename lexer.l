@@ -35,7 +35,6 @@ LINE_CMT    "--"[^\n]*
 {LINE_CMT}      { }
 
 "let"           { return LET;      }
-"const"         { return CONST;    }
 
 "try"           { return TRY;      }
 "catch"         { return CATCH;    }

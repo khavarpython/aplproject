@@ -79,7 +79,7 @@ int yywrap() { return 1; }
 }
 
 // TOKENS  
-%token LET CONST TRY CATCH DISPLAY INPUT READ
+%token LET TRY CATCH DISPLAY INPUT READ
 %token NULL_LIT CHAR_LIT BOOL_LIT
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
@@ -132,20 +132,6 @@ assign_stmt:
         }
         ASTNode *id = create_leaf_id($2);
         $$ = create_node("LET", id, $4);
-        free($2);
-    }
-;
-
-const_stmt:
-    CONST IDENTIFIER ASSIGN expr {
-        if (!div_error) {
-            set_var($2, $4->val);
-            if ($4->val.type == TYPE_INT) printf("[CONST] %s = %d\n", $2, $4->val.ival);
-            else if ($4->val.type == TYPE_STRING)  printf("[CONST] %s = %s\n", $2, $4->val.sval); 
-            else printf("[CONST] %s = %g\n", $2, $4->val.dval);
-        }
-        ASTNode *id = create_leaf_id($2);
-        $$ = create_node("CONST", id, $4);
         free($2);
     }
 ;
