@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <setjmp.h>
 #include "ast.h"
 
 // SYMBOL TABLE  
@@ -12,6 +11,11 @@ typedef struct {
     char name[50]; 
     Value val; 
 } Variable;
+
+// Code Generation
+ASTNode *ast_root = NULL;  
+FILE *cg_out;
+void codegen(ASTNode *node);
 
 // Symbol Table Variables 
 Variable symtab[MAX_VARS];
@@ -44,12 +48,8 @@ Value get_var(char *name) {
     return symtab[idx].val;
 }
 
-// Error Handling Variables
-int div_error = 0;
-jmp_buf catch_point;
 char num_buf[50];
 
-// Helper Functions
 void display_value(char *s) {
     if (s[0] == '"')
         printf("%.*s", (int)strlen(s) - 2, s + 1);
@@ -61,16 +61,11 @@ double to_num(Value v) {
     if (v.type == TYPE_INT)    return v.ival;
     if (v.type == TYPE_DOUBLE) return v.dval;
     if (v.type == TYPE_STRING) {
-            printf("[TYPE ERROR] Cannot use string in numeric expression\n");
-            div_error = 1; 
-            longjmp(catch_point, 1);
-        }
-
+        printf("[TYPE ERROR] Cannot use string in numeric expression\n");
+        return nan("");
+    }
     printf("[TYPE ERROR] Expected number\n");
-    div_error = 1; 
-    longjmp(catch_point, 1);
     return nan("");
-
 }
 
 int yylex();
@@ -78,7 +73,6 @@ void yyerror(const char *s) { fprintf(stderr, "error: %s\n", s); }
 int yywrap() { return 1; }
 %}
 
-// UNION  
 %union {
     char   *sval;
     int     ival;
@@ -86,16 +80,17 @@ int yywrap() { return 1; }
     ASTNode *node;
 }
 
-// TOKENS  
+// TOKENS
 %token LET TRY CATCH DISPLAY INPUT READ
 %token NULL_LIT CHAR_LIT 
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
+// TOKENS
 %token <sval> IDENTIFIER STRING_LIT
 %token <ival> INT_LIT BOOL_LIT
 %token <dval> FLOAT_LIT DOUBLE_LIT
 
-// TYPES 
+// TYPES
 %type <node> program stmts stmt expr value
 %type <node> display_list display_item
 %type <node> assign_stmt print_stmt try_stmt input_stmt
@@ -110,6 +105,7 @@ int yywrap() { return 1; }
 
 program:
     stmts {
+        ast_root = $1; 
         printf("\n ABSTRACT SYNTAX TREE \n");
         print_ast($1, 0);
         printf("==\n");
@@ -131,12 +127,10 @@ stmt:
 
 assign_stmt:
     LET IDENTIFIER ASSIGN expr {
-        if (!div_error) {
-            set_var($2, $4->val);
-            if ($4->val.type == TYPE_INT) printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
-            else if ($4->val.type == TYPE_STRING)  printf("[ASSIGN] %s = %s\n", $2, $4->val.sval); 
-            else printf("[ASSIGN] %s = %g\n", $2, $4->val.dval);
-        }
+        set_var($2, $4->val);
+        if ($4->val.type == TYPE_INT)         printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
+        else if ($4->val.type == TYPE_STRING)  printf("[ASSIGN] %s = %s\n", $2, $4->val.sval); 
+        else                                   printf("[ASSIGN] %s = %g\n", $2, $4->val.dval);
         ASTNode *id = create_leaf_id($2);
         $$ = create_node("LET", id, $4);
         free($2);
@@ -162,19 +156,16 @@ display_item:
         free($1);
     }
     | expr {
-        if ($1->val.type == TYPE_INT) printf("%d", $1->val.ival);
+        if ($1->val.type == TYPE_INT)          printf("%d", $1->val.ival);
         else if ($1->val.type == TYPE_STRING)  display_value($1->val.sval);
-        else printf("%g", $1->val.dval);
+        else                                   printf("%g", $1->val.dval);
         $$ = $1;
     }
 ;
 
 try_stmt:
-    TRY {
-        div_error = 0;
-        setjmp(catch_point);
-    } stmts CATCH stmts {
-        $$ = create_node("TRY", $3, $5);
+    TRY stmts CATCH stmts {
+        $$ = create_node("TRY", $2, $4);
     }
 ;
 
@@ -199,8 +190,7 @@ expr:
     | expr DIV expr         {
         $$ = create_node("DIV",$1,$3);
         if (to_num($3->val) == 0) {
-            div_error = 1;
-            longjmp(catch_point, 1);
+            printf("[RUNTIME ERROR] Division by zero\n");
             $$->val.type=TYPE_DOUBLE; $$->val.dval=0;
         } else {
             $$->val.type=TYPE_DOUBLE; $$->val.dval=to_num($1->val)/to_num($3->val);
@@ -221,11 +211,11 @@ expr:
 value:
     BOOL_LIT      { $$ = create_leaf_num(0); }
     | NULL_LIT    { $$ = create_leaf_num(0); }
-    | INT_LIT    { $$ = create_leaf_int($1); }
-    | FLOAT_LIT  { $$ = create_leaf_num($1); }
-    | DOUBLE_LIT { $$ = create_leaf_num($1); }
+    | INT_LIT     { $$ = create_leaf_int($1); }
+    | FLOAT_LIT   { $$ = create_leaf_num($1); }
+    | DOUBLE_LIT  { $$ = create_leaf_num($1); }
     | STRING_LIT  { $$ = create_leaf_str($1); free($1); }
-    | IDENTIFIER {
+    | IDENTIFIER  {
         Value v = get_var($1);
         $$ = create_leaf_id($1);
         $$->val = v;         
@@ -235,7 +225,7 @@ value:
 
 %%
 
-// AST IMPLEMENTATION  
+// AST IMPLEMENTATION
 ASTNode* create_node(char *type, ASTNode *left, ASTNode *right) {
     ASTNode *node = malloc(sizeof(ASTNode));
     strncpy(node->type, type, 19);
@@ -266,6 +256,7 @@ ASTNode* create_leaf_int(int i) {
     n->left = n->right = NULL;
     return n;
 }
+
 ASTNode* create_leaf_id(char *name) {
     ASTNode *n = malloc(sizeof(ASTNode));
     strcpy(n->type, "ID");
@@ -294,13 +285,10 @@ void print_ast(ASTNode *root, int level) {
         if (root->val.type == TYPE_INT) printf("NUM(%d)\n", root->val.ival);
         else printf("NUM(%g)\n", root->val.dval);
     } 
-
     else if (strcmp(root->type, "ID") == 0)
         printf("ID(%s)\n", root->name);
-
     else if (strcmp(root->type, "STR") == 0)
         printf("STR(%s)\n", root->val.sval);
-
     else
         printf("%s\n", root->type);
 
@@ -308,7 +296,178 @@ void print_ast(ASTNode *root, int level) {
     print_ast(root->right, level + 1);
 }
 
+// CODE GENERATION
+void codegen_expr(ASTNode *node, char *buf, int bufsz) {
+    if (!node) { snprintf(buf, bufsz, "0"); return; }
+
+    char L[256] = {0}, R[256] = {0};
+
+    if (strcmp(node->type, "NUM") == 0) {
+        if (node->val.type == TYPE_INT)
+            snprintf(buf, bufsz, "%d", node->val.ival);
+        else
+            snprintf(buf, bufsz, "%g", node->val.dval);
+
+    } else if (strcmp(node->type, "ID") == 0) {
+        snprintf(buf, bufsz, "%s", node->name);
+
+    } else if (strcmp(node->type, "STR") == 0) {
+        const char *s = node->val.sval;
+        if (s[0] == '"') snprintf(buf, bufsz, "%s", s);
+        else             snprintf(buf, bufsz, "\"%s\"", s);
+
+    } else {
+        codegen_expr(node->left,  L, sizeof L);
+        codegen_expr(node->right, R, sizeof R);
+
+        if      (strcmp(node->type,"ADD")==0) snprintf(buf,bufsz,"(%s + %s)",L,R);
+        else if (strcmp(node->type,"SUB")==0) snprintf(buf,bufsz,"(%s - %s)",L,R);
+        else if (strcmp(node->type,"MUL")==0) snprintf(buf,bufsz,"(%s * %s)",L,R);
+        else if (strcmp(node->type,"DIV")==0)
+            
+            snprintf(buf,bufsz,"((%s) != 0 ? (%s) / (%s) : (_had_error=1, 0.0))",R,L,R);
+        else if (strcmp(node->type,"MOD")==0)
+            snprintf(buf,bufsz,"((%s) != 0 ? (int)(%s) %% (int)(%s) : (_had_error=1, 0))",R,L,R);
+        else if (strcmp(node->type,"POW")==0) snprintf(buf,bufsz,"pow(%s,%s)",L,R);
+        else if (strcmp(node->type,"NEG")==0) snprintf(buf,bufsz,"(-%s)",L);
+        else snprintf(buf, bufsz, "0");
+    }
+}
+
+void codegen(ASTNode *node) {
+    if (!node) return;
+
+    if (strcmp(node->type, "SEQ") == 0) {
+        codegen(node->left);
+        codegen(node->right);
+        return;
+    }
+
+    // LET
+    if (strcmp(node->type, "LET") == 0) {
+        char expr_buf[512];
+        codegen_expr(node->right, expr_buf, sizeof expr_buf);
+        const char *varname = node->left->name;
+
+        if (node->right->val.type == TYPE_STRING) {
+            fprintf(cg_out, "    char *%s = %s;\n", varname, expr_buf);
+        } else {
+            // emit as two statements so _had_error is set BEFORE the assign
+            fprintf(cg_out, "    double %s = 0;\n", varname);
+            fprintf(cg_out, "    if (!_had_error) { %s = %s; }\n", varname, expr_buf);
+        }
+        return;
+    }
+
+    // DISPLAY
+    if (strcmp(node->type, "DISPLAY") == 0) {
+        codegen(node->left);
+        fprintf(cg_out, "    printf(\"\\n\");\n");
+        return;
+    }
+
+    // DLIST
+    if (strcmp(node->type, "DLIST") == 0) {
+        codegen(node->left);
+        codegen(node->right);
+        return;
+    }
+
+    // STRING
+    if (strcmp(node->type, "STR") == 0) {
+        const char *s = node->val.sval;
+        if (s[0] == '"') {
+            int len = (int)strlen(s);
+            char clean[512];
+            strncpy(clean, s + 1, len - 2);
+            clean[len - 2] = '\0';
+            fprintf(cg_out, "    printf(\"%%s\", \"%s\");\n", clean);
+        } else {
+            fprintf(cg_out, "    printf(\"%%s\", \"%s\");\n", s);
+        }
+        return;
+    }
+
+    // TRY / CATCH
+    if (strcmp(node->type, "TRY") == 0) {
+        fprintf(cg_out,
+            "    {\n"
+            "        int _had_error = 0;\n"
+            "        /* --- try --- */\n");
+        codegen(node->left);
+        fprintf(cg_out,
+            "        /* --- catch --- */\n"
+            "        if (_had_error) {\n");
+        codegen(node->right);
+        fprintf(cg_out,
+            "        }\n"
+            "    }\n");
+        return;
+    }
+
+    // INPUT
+    if (strcmp(node->type, "INPUT") == 0) {
+        const char *varname = node->right->name;
+        fprintf(cg_out,
+            "    {\n"
+            "        double %s = 0;\n"
+            "        printf(\"Enter value for %s: \");\n"
+            "        if (scanf(\"%%lf\", &%s) != 1) {\n"
+            "            printf(\"[RUNTIME ERROR] Invalid input for %s\\n\");\n"
+            "            _had_error = 1;\n"
+            "        } else {\n"
+            "            printf(\"%s = %%g\\n\", %s);\n"
+            "        }\n"
+            "    }\n",
+            varname, varname, varname, varname, varname, varname);
+        return;
+    }
+
+    {
+        char expr_buf[512];
+        codegen_expr(node, expr_buf, sizeof expr_buf);
+        if (node->val.type == TYPE_STRING)
+            fprintf(cg_out, "    printf(\"%%s\", %s);\n", expr_buf);
+        else
+            fprintf(cg_out, "    printf(\"%%g\", (double)(%s));\n", expr_buf);
+    }
+}
+
+void generate_and_run(ASTNode *root) {
+    const char *cfile = "output.c";
+    const char *bin   = "./output";
+
+    cg_out = fopen(cfile, "w");
+    if (!cg_out) { perror("fopen output.c"); return; }
+
+    fprintf(cg_out,
+        "#include <stdio.h>\n"
+        "#include <string.h>\n"
+        "#include <math.h>\n\n"
+        "int main(void) {\n"
+        "    int _had_error = 0;\n");   
+
+    codegen(root);
+
+    fprintf(cg_out,
+        "    return 0;\n"
+        "}\n");
+
+    fclose(cg_out);
+    printf("\n[CODEGEN] Wrote %s\n", cfile);
+
+    char cmd[256];
+    snprintf(cmd, sizeof cmd, "gcc -o %s %s -lm", bin, cfile);
+    printf("[CODEGEN] Compiling: %s\n", cmd);
+    int ret = system(cmd);
+    if (ret != 0) { printf("[CODEGEN] Compilation failed.\n"); return; }
+
+    printf("[CODEGEN] Running %s\n---\n", bin);
+    system(bin);
+}
+
 int main() {
     yyparse();
+    generate_and_run(ast_root);   
     return 0;
 }
