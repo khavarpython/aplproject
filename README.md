@@ -17,7 +17,16 @@ pip install python-dotenv openai
 1. Clone the repo
 2. Copy `.env.example` to `.env`
 3. Fill in your Azure API key and endpoint in `.env`
-
+4. 
+1. Make script executable
+```bash
+chmod +x run.sh
+```
+2. Run Script
+```bash
+./run.sh
+```
+or 
 ## Build & Run Compiler
 1. Generate parser:
 ```bash
