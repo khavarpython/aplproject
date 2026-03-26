@@ -44,6 +44,11 @@ Value get_var(char *name) {
     return symtab[idx].val;
 }
 
+// Error Handling Variables
+int div_error = 0;
+jmp_buf catch_point;
+char num_buf[50];
+
 // Helper Functions
 void display_value(char *s) {
     if (s[0] == '"')
@@ -55,15 +60,18 @@ void display_value(char *s) {
 double to_num(Value v) {
     if (v.type == TYPE_INT)    return v.ival;
     if (v.type == TYPE_DOUBLE) return v.dval;
+    if (v.type == TYPE_STRING) {
+            printf("[TYPE ERROR] Cannot use string in numeric expression\n");
+            div_error = 1; 
+            longjmp(catch_point, 1);
+        }
+
     printf("[TYPE ERROR] Expected number\n");
+    div_error = 1; 
+    longjmp(catch_point, 1);
     return nan("");
+
 }
-
-// Error Handling Variables
-int div_error = 0;
-jmp_buf catch_point;
-char num_buf[50];
-
 
 int yylex();
 void yyerror(const char *s) { fprintf(stderr, "error: %s\n", s); }
@@ -80,11 +88,11 @@ int yywrap() { return 1; }
 
 // TOKENS  
 %token LET TRY CATCH DISPLAY INPUT READ
-%token NULL_LIT CHAR_LIT BOOL_LIT
+%token NULL_LIT CHAR_LIT 
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
 %token <sval> IDENTIFIER STRING_LIT
-%token <ival> INT_LIT
+%token <ival> INT_LIT BOOL_LIT
 %token <dval> FLOAT_LIT DOUBLE_LIT
 
 // TYPES 
