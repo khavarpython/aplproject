@@ -1,3 +1,9 @@
-let x = 3 + 4 * 2
-let y = x + 1
-display y
+let A = 20
+let B = 40
+let C = A + B * B
+-- Demonstrating Exception Handling
+try
+let D = C / 0
+catch
+display "Error: Division by zero attempted but not allowed."
+display "The result is " C
