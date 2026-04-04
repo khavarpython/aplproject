@@ -37,6 +37,7 @@ LINE_CMT    "--"[^\n]*
 
 "try"           { return TRY;      }
 "catch"         { return CATCH;    }
+"end"           { return END;      }
 
 "display"       { return DISPLAY;  }
 "input"         { return INPUT;    }
