@@ -12,6 +12,7 @@
 ### 1. Install dependencies (Ubuntu/WSL)
 ```bash
 sudo apt update && sudo apt install gcc bison flex python3 python3-pip -y
+sudo apt install libgtk-3-dev gcc
 pip install openai python-dotenv
 ```
 
