@@ -3,5 +3,5 @@ set -e
 bison -d parser.y
 lex lexer.l
 gcc parser.tab.c lex.yy.c -o myparser -lm
-./myparser < test.txt
-python3 ai_script.py test.txt
+./myparser < "$1"
+python3 ai_script.py "$1"
