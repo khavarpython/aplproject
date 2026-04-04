@@ -1,9 +1,17 @@
 let A = 20
 let B = 40
 let C = A + B * B
+let D = "Hello"
 -- Demonstrating Exception Handling
 try
-let D = C / 0
+    display A
+    let A = 5
+    display A
+    let D = C / 0
 catch
-display "Error: Division by zero attempted but not allowed."
-display "The result is " C
+    display "Error: Division by zero attempted but not allowed."
+    display "The result is " C
+    display A
+end
+
+display A
