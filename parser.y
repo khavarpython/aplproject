@@ -5,47 +5,49 @@
 #include <math.h>
 #include "ast.h"
 
-// SYMBOL TABLE  
-#define MAX_VARS 100
+// Symbol Table
+#define MAX_SCOPES 32
+#define MAX_VARS   100
+
 typedef struct {
-    char name[50]; 
-    Value val; 
-} Variable;
+    Variable vars[MAX_VARS];
+    int count;
+} Scope;
 
-// Code Generation
-ASTNode *ast_root = NULL;  
-FILE *cg_out;
-void codegen(ASTNode *node);
+Scope scope_stack[MAX_SCOPES];
+int scope_top = 0;
 
-// Symbol Table Variables 
-Variable symtab[MAX_VARS];
-int var_count = 0;
+void push_scope() {
+    if (scope_top + 1 >= MAX_SCOPES) { printf("[ERROR] Scope overflow\n"); return; }
+    scope_top++;
+    scope_stack[scope_top].count = 0;
+}
 
-// Symbol Table Functions
-int find_var(char *name) {
-    for (int i = 0; i < var_count; i++)
-        if (strcmp(symtab[i].name, name) == 0) return i;
-    return -1;
+void pop_scope() {
+    if (scope_top == 0) { printf("[ERROR] Cannot pop global scope\n"); return; }
+    scope_top--;
 }
 
 void set_var(char *name, Value value) {
-    int idx = find_var(name);
-    if (idx == -1) {
-        strcpy(symtab[var_count].name, name);
-        symtab[var_count].val = value;
-        var_count++;
-    } else {
-        symtab[idx].val = value;
+    Scope *cur = &scope_stack[scope_top];
+    for (int i = 0; i < cur->count; i++) {
+        if (strcmp(cur->vars[i].name, name) == 0) {
+            cur->vars[i].val = value;
+            return;
+        }
     }
+    strcpy(cur->vars[cur->count].name, name);
+    cur->vars[cur->count].val = value;
+    cur->count++;
 }
 
 Value get_var(char *name) {
-    int idx = find_var(name);
-    if (idx == -1) {
-        printf("[SEMANTIC ERROR] Variable '%s' not defined\n", name);
-        return (Value){TYPE_NULL};
-    }
-    return symtab[idx].val;
+    for (int s = scope_top; s >= 0; s--)
+        for (int i = 0; i < scope_stack[s].count; i++)
+            if (strcmp(scope_stack[s].vars[i].name, name) == 0)
+                return scope_stack[s].vars[i].val;
+    printf("[SEMANTIC ERROR] Variable '%s' not defined\n", name);
+    return (Value){TYPE_NULL};
 }
 
 char num_buf[50];
@@ -68,6 +70,10 @@ double to_num(Value v) {
     return nan("");
 }
 
+ASTNode *ast_root = NULL;
+FILE *cg_out;
+void codegen(ASTNode *node);
+
 int yylex();
 void yyerror(const char *s) { fprintf(stderr, "error: %s\n", s); }
 int yywrap() { return 1; }
@@ -80,22 +86,18 @@ int yywrap() { return 1; }
     ASTNode *node;
 }
 
-// TOKENS
-%token LET TRY CATCH DISPLAY INPUT READ
-%token NULL_LIT CHAR_LIT 
+%token LET TRY CATCH END DISPLAY INPUT READ
+%token NULL_LIT CHAR_LIT
 %token ADD SUB MUL DIV MOD POW ASSIGN LPAREN RPAREN
 
-// TOKENS
 %token <sval> IDENTIFIER STRING_LIT
 %token <ival> INT_LIT BOOL_LIT
 %token <dval> FLOAT_LIT DOUBLE_LIT
 
-// TYPES
 %type <node> program stmts stmt expr value
 %type <node> display_list display_item
 %type <node> assign_stmt print_stmt try_stmt input_stmt
 
-// PRECEDENCE
 %left ADD SUB
 %left MUL DIV MOD
 %right POW
@@ -105,10 +107,9 @@ int yywrap() { return 1; }
 
 program:
     stmts {
-        ast_root = $1; 
+        ast_root = $1;
         printf("\n ABSTRACT SYNTAX TREE \n");
         print_ast($1, 0);
-        printf("==\n");
         $$ = $1;
     }
 ;
@@ -128,8 +129,8 @@ stmt:
 assign_stmt:
     LET IDENTIFIER ASSIGN expr {
         set_var($2, $4->val);
-        if ($4->val.type == TYPE_INT)         printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
-        else if ($4->val.type == TYPE_STRING)  printf("[ASSIGN] %s = %s\n", $2, $4->val.sval); 
+        if ($4->val.type == TYPE_INT)          printf("[ASSIGN] %s = %d\n", $2, $4->val.ival);
+        else if ($4->val.type == TYPE_STRING)  printf("[ASSIGN] %s = %s\n", $2, $4->val.sval);
         else                                   printf("[ASSIGN] %s = %g\n", $2, $4->val.dval);
         ASTNode *id = create_leaf_id($2);
         $$ = create_node("LET", id, $4);
@@ -164,8 +165,13 @@ display_item:
 ;
 
 try_stmt:
-    TRY stmts CATCH stmts {
-        $$ = create_node("TRY", $2, $4);
+    TRY  { push_scope(); }
+    stmts
+    CATCH { pop_scope(); push_scope(); }
+    stmts
+    END  { pop_scope(); }
+    {
+        $$ = create_node("TRY", $3, $6);
     }
 ;
 
@@ -174,7 +180,8 @@ input_stmt:
         double val;
         printf("Enter value for %s: ", $4);
         scanf("%lf", &val);
-        Value v; v.type = TYPE_DOUBLE; v.dval = val;
+        Value v; v.type = TYPE_DOUBLE; 
+        v.dval = val;
         set_var($4, v);
         ASTNode *id = create_leaf_id($4);
         $$ = create_node("INPUT", $2, id);
@@ -218,7 +225,7 @@ value:
     | IDENTIFIER  {
         Value v = get_var($1);
         $$ = create_leaf_id($1);
-        $$->val = v;         
+        $$->val = v;
         free($1);
     }
 ;
@@ -240,9 +247,9 @@ ASTNode* create_node(char *type, ASTNode *left, ASTNode *right) {
 ASTNode* create_leaf_num(double d) {
     ASTNode *n = malloc(sizeof(ASTNode));
     strcpy(n->type, "NUM");
-    n->val.type = TYPE_DOUBLE; 
+    n->val.type = TYPE_DOUBLE;
     n->val.dval = d;
-    n->name[0] = '\0'; 
+    n->name[0] = '\0';
     n->left = n->right = NULL;
     return n;
 }
@@ -250,7 +257,7 @@ ASTNode* create_leaf_num(double d) {
 ASTNode* create_leaf_int(int i) {
     ASTNode *n = malloc(sizeof(ASTNode));
     strcpy(n->type, "NUM");
-    n->val.type = TYPE_INT; 
+    n->val.type = TYPE_INT;
     n->val.ival = i;
     n->name[0] = '\0';
     n->left = n->right = NULL;
@@ -270,9 +277,9 @@ ASTNode* create_leaf_id(char *name) {
 ASTNode* create_leaf_str(char *s) {
     ASTNode *n = malloc(sizeof(ASTNode));
     strcpy(n->type, "STR");
-    n->val.type = TYPE_STRING; 
+    n->val.type = TYPE_STRING;
     strncpy(n->val.sval, s, 255);
-    n->name[0] = '\0'; 
+    n->name[0] = '\0';
     n->left = n->right = NULL;
     return n;
 }
@@ -284,7 +291,7 @@ void print_ast(ASTNode *root, int level) {
     if (strcmp(root->type, "NUM") == 0) {
         if (root->val.type == TYPE_INT) printf("NUM(%d)\n", root->val.ival);
         else printf("NUM(%g)\n", root->val.dval);
-    } 
+    }
     else if (strcmp(root->type, "ID") == 0)
         printf("ID(%s)\n", root->name);
     else if (strcmp(root->type, "STR") == 0)
@@ -297,6 +304,7 @@ void print_ast(ASTNode *root, int level) {
 }
 
 // CODE GENERATION
+int in_try_block = 0;
 void codegen_expr(ASTNode *node, char *buf, int bufsz) {
     if (!node) { snprintf(buf, bufsz, "0"); return; }
 
@@ -324,7 +332,6 @@ void codegen_expr(ASTNode *node, char *buf, int bufsz) {
         else if (strcmp(node->type,"SUB")==0) snprintf(buf,bufsz,"(%s - %s)",L,R);
         else if (strcmp(node->type,"MUL")==0) snprintf(buf,bufsz,"(%s * %s)",L,R);
         else if (strcmp(node->type,"DIV")==0)
-            
             snprintf(buf,bufsz,"((%s) != 0 ? (%s) / (%s) : (_had_error=1, 0.0))",R,L,R);
         else if (strcmp(node->type,"MOD")==0)
             snprintf(buf,bufsz,"((%s) != 0 ? (int)(%s) %% (int)(%s) : (_had_error=1, 0))",R,L,R);
@@ -352,9 +359,7 @@ void codegen(ASTNode *node) {
         if (node->right->val.type == TYPE_STRING) {
             fprintf(cg_out, "    char *%s = %s;\n", varname, expr_buf);
         } else {
-            // emit as two statements so _had_error is set BEFORE the assign
-            fprintf(cg_out, "    double %s = 0;\n", varname);
-            fprintf(cg_out, "    if (!_had_error) { %s = %s; }\n", varname, expr_buf);
+            fprintf(cg_out, "    double %s = %s;\n", varname, expr_buf);
         }
         return;
     }
@@ -373,7 +378,7 @@ void codegen(ASTNode *node) {
         return;
     }
 
-    // STRING
+    // STR
     if (strcmp(node->type, "STR") == 0) {
         const char *s = node->val.sval;
         if (s[0] == '"') {
@@ -393,10 +398,12 @@ void codegen(ASTNode *node) {
         fprintf(cg_out,
             "    {\n"
             "        int _had_error = 0;\n"
-            "        /* --- try --- */\n");
+            "        //try\n");
+        in_try_block = 1;
         codegen(node->left);
+        in_try_block = 0;
         fprintf(cg_out,
-            "        /* --- catch --- */\n"
+            "        //catch\n"
             "        if (_had_error) {\n");
         codegen(node->right);
         fprintf(cg_out,
@@ -414,7 +421,6 @@ void codegen(ASTNode *node) {
             "        printf(\"Enter value for %s: \");\n"
             "        if (scanf(\"%%lf\", &%s) != 1) {\n"
             "            printf(\"[RUNTIME ERROR] Invalid input for %s\\n\");\n"
-            "            _had_error = 1;\n"
             "        } else {\n"
             "            printf(\"%s = %%g\\n\", %s);\n"
             "        }\n"
@@ -444,8 +450,7 @@ void generate_and_run(ASTNode *root) {
         "#include <stdio.h>\n"
         "#include <string.h>\n"
         "#include <math.h>\n\n"
-        "int main(void) {\n"
-        "    int _had_error = 0;\n");   
+        "int main(void) {\n");
 
     codegen(root);
 
@@ -454,20 +459,24 @@ void generate_and_run(ASTNode *root) {
         "}\n");
 
     fclose(cg_out);
-    printf("\n[CODEGEN] Wrote %s\n", cfile);
 
     char cmd[256];
-    snprintf(cmd, sizeof cmd, "gcc -o %s %s -lm", bin, cfile);
-    printf("[CODEGEN] Compiling: %s\n", cmd);
+    snprintf(cmd, sizeof cmd, "gcc -o %s %s -lm 2>/dev/null", bin, cfile);
     int ret = system(cmd);
-    if (ret != 0) { printf("[CODEGEN] Compilation failed.\n"); return; }
+    if (ret != 0) {
+        printf("Compilation failed.\n");
+        return;
+    }
 
-    printf("[CODEGEN] Running %s\n---\n", bin);
+    printf("\nOUTPUT\n");
+    fflush(stdout);
     system(bin);
 }
 
 int main() {
+    scope_stack[0].count = 0;
+    scope_top = 0;
     yyparse();
-    generate_and_run(ast_root);   
+    generate_and_run(ast_root);
     return 0;
 }
