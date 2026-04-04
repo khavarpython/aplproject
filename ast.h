@@ -21,6 +21,12 @@ typedef struct
     };
 } Value;
 
+typedef struct
+{
+    char name[50];
+    Value val;
+} Variable;
+
 typedef struct ASTNode
 {
     char type[20];
