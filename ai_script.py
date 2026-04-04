@@ -11,10 +11,6 @@ client = AzureOpenAI(
     api_key=os.environ["AZURE_API_KEY"],
 )
 
-if len(sys.argv) < 2:
-    print("Usage: python ai_script.py <source_file>")
-    sys.exit(1)
-
 with open(sys.argv[1], "r") as f:
     source = f.read()
 
@@ -23,7 +19,7 @@ response = client.chat.completions.create(
     messages=[
         {
             "role": "system",
-            "content": "You are an interpreter for a mini programming language. When given source code, execute it and show ONLY the output it would produce. Do not explain, just show the program output."
+            "content": "You are an interpreter for a programming language. When given source code, execute it and only the output it would produce. Do not explain, just show the program output."
         },
         {
             "role": "user",
@@ -33,7 +29,5 @@ response = client.chat.completions.create(
     max_tokens=1024
 )
 
-print("=" * 40)
-print("LLM EXECUTION OUTPUT (Azure OpenAI)")
-print("=" * 40)
+print("\nAI OUTPUT")
 print(response.choices[0].message.content)
