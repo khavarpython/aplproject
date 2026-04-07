@@ -5,15 +5,18 @@ from openai import AzureOpenAI
 
 load_dotenv()
 
+# Create ai client
 client = AzureOpenAI(
     api_version="2024-12-01-preview",
     azure_endpoint=os.environ["AZURE_ENDPOINT"],
     api_key=os.environ["AZURE_API_KEY"],
 )
 
+# Open the source code
 with open(sys.argv[1], "r") as f:
     source = f.read()
 
+# Create the response for the ai
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[

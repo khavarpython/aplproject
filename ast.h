@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+// The types of values we can use
 typedef enum
 {
     TYPE_INT,
@@ -10,6 +11,7 @@ typedef enum
     TYPE_NULL
 } VType;
 
+// Value for the nodes
 typedef struct
 {
     VType type;
@@ -21,12 +23,14 @@ typedef struct
     };
 } Value;
 
+// Symbol table variables
 typedef struct
 {
     char name[50];
     Value val;
 } Variable;
 
+// Nodes in tree
 typedef struct ASTNode
 {
     char type[20];
@@ -35,6 +39,7 @@ typedef struct ASTNode
     struct ASTNode *left, *right;
 } ASTNode;
 
+// Function declarations
 ASTNode *create_node(char *type, ASTNode *left, ASTNode *right);
 ASTNode *create_leaf_num(double d);
 ASTNode *create_leaf_int(int i);
