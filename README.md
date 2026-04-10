@@ -29,17 +29,7 @@ cd aplproject
 ### 3. Configure environment
 
 Create a `.env` file in the project root:
-### 2. Clone the repo
-```bash
-git clone https://github.com/khavarpython/aplproject
-```
 
-### 3. Configure environment
-Create a `.env` file in the project root:
-```
-AZURE_ENDPOINT=https://your-resource-name.openai.azure.com/
-AZURE_API_KEY=your-api-key-here
-```
 ## Build & Run
 
 ### 1. Compile the IDE
