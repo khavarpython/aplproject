@@ -32,5 +32,4 @@ response = client.chat.completions.create(
     max_tokens=1024
 )
 
-print("\nAI OUTPUT")
 print(response.choices[0].message.content)

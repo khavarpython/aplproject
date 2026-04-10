@@ -142,8 +142,6 @@ int yywrap() { return 1; }
 program:
     stmts {
         ast_root = $1;
-        printf("\n ABSTRACT SYNTAX TREE \n");
-        print_ast($1, 0);
         $$ = $1;
     }
 ;
@@ -227,7 +225,6 @@ expr:
 
         // Checks for divide by 0
         if (to_num($3->val) == 0) {
-            printf("[RUNTIME ERROR] Division by zero\n");
             $$->val.type=TYPE_DOUBLE; 
             $$->val.dval=0;
         } 
@@ -577,7 +574,6 @@ void generate_and_run(ASTNode *root) {
     }
 
     // Prints the output of the c file
-    printf("\nOUTPUT\n");
     fflush(stdout);
     system(bin);
 }
