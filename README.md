@@ -45,13 +45,13 @@ AZURE_API_KEY=your-api-key-here
 ### 1. Compile the IDE
 
 ```bash
-gcc main.c -o IDE $(pkg-config --cflags --libs gtk+-3.0)
+gcc IDE.c -o IDE $(pkg-config --cflags --libs gtk+-3.0)
 ```
 
 ### 2. Run
 
 ```bash
-./apl_ide
+./IDE
 ```
 
 ## Run LLM Comparison
