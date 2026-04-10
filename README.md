@@ -1,5 +1,6 @@
 # APL Compiler
 ## Requirements
+
 - GCC
 - Bison
 - Flex
@@ -7,15 +8,27 @@
 - pip
 - openai
 - python-dotenv
+- GTK 3
 
 ## Setup
+
 ### 1. Install dependencies (Ubuntu/WSL)
+
 ```bash
-sudo apt update && sudo apt install gcc bison flex python3 python3-pip -y
-sudo apt install libgtk-3-dev gcc
+sudo apt update && sudo apt install gcc bison flex python3 python3-pip libgtk-3-dev -y
 pip install openai python-dotenv
 ```
 
+### 2. Clone the repo
+
+```bash
+git clone https://github.com/khavarpython/aplproject
+cd aplproject
+```
+
+### 3. Configure environment
+
+Create a `.env` file in the project root:
 ### 2. Clone the repo
 ```bash
 git clone https://github.com/khavarpython/aplproject
@@ -27,37 +40,19 @@ Create a `.env` file in the project root:
 AZURE_ENDPOINT=https://your-resource-name.openai.azure.com/
 AZURE_API_KEY=your-api-key-here
 ```
+## Build & Run
 
-## Quick Start (Recommended)
+### 1. Compile the IDE
+
 ```bash
-chmod +x run.sh
-./run.sh
+gcc main.c -o apl_ide $(pkg-config --cflags --libs gtk+-3.0)
 ```
 
----
+### 2. Run
 
-## Manual Build & Run
-### 1. Generate parser
 ```bash
-bison -d parser.y
+./apl_ide
 ```
-
-### 2. Generate lexer
-```bash
-lex lexer.l
-```
-
-### 3. Compile
-```bash
-gcc parser.tab.c lex.yy.c -o myparser -lm
-```
-
-### 4. Run with input file
-```bash
-./myparser < test.txt
-```
-
----
 
 ## Run LLM Comparison
 ```bash
