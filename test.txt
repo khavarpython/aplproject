@@ -14,5 +14,3 @@ catch
     display A
 end
 display A
-input "Enter a new value for A: " read A
-display A
